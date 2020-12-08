@@ -3,6 +3,19 @@ import functools
 import pandas as pd
 
 
+REVERSED_CATEGORIES = {
+    "X1SEX",
+    "S1MTCHMFDIFF",
+    "S1STCHMFDIFF",
+    "S1MPERSON1",
+    "S2MPERSON1",
+    "S4MPERSON1",
+    "S1SPERSON1",
+    "S2SPERSON1",
+    "S4SPERSON1",
+}
+
+
 @functools.cache
 def variable_labels():
     labels = {}
@@ -61,16 +74,38 @@ def student_encodings():
 def is_ordered(*, encoding):
     return any(
         ordered_code in encoding.values()
-        for ordered_code in ("Strongly agree", "Agree", "Disagree", "Strongly disagree")
+        for ordered_code in (
+            "Strongly agree",
+            "Agree",
+            "Disagree",
+            "Strongly disagree",
+            "Never",
+            "Rarely",
+            "Sometimes",
+            "Often",
+        )
+    )
+
+
+def to_categorical(column):
+    encodings = student_encodings()
+    categories = [v for k, v in encodings[column.name].items() if k >= 0]
+    return (
+        column.astype("category")
+        .cat.rename_categories(encodings[column.name])
+        .cat.set_categories(
+            reversed(categories) if column.name in REVERSED_CATEGORIES else categories,
+            ordered=is_ordered(encoding=encodings[column.name]),
+        )
     )
 
 
 def relabel(df, axis=1):
     labels = variable_labels()
-    
+
     if type(df) == pd.Series:
         df = df.rename(labels[df.name])
-    
+
     if type(df) == pd.DataFrame:
         if df.index.name in labels:
             df.index = df.index.rename(labels[df.index.name])
@@ -80,5 +115,5 @@ def relabel(df, axis=1):
             df = df.rename(variable_labels(), axis=0)
         if axis in (1, "column", 2, "both"):
             df = df.rename(variable_labels(), axis=1)
-    
+
     return df
