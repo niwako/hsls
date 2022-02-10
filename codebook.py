@@ -5,14 +5,6 @@ import pandas as pd
 
 REVERSED_CATEGORIES = {
     "X1SEX",
-    "S1MTCHMFDIFF",
-    "S1STCHMFDIFF",
-    "S1MPERSON1",
-    "S2MPERSON1",
-    "S4MPERSON1",
-    "S1SPERSON1",
-    "S2SPERSON1",
-    "S4SPERSON1",
 }
 
 
@@ -83,7 +75,24 @@ def is_ordered(*, encoding):
             "Rarely",
             "Sometimes",
             "Often",
+            'Males are much better',
+            'Males are somewhat better', 
+            'Females and males are the same', 
+            'Females are somewhat better', 
+            'Females are much better',
+            'Very confident',
+            'Somewhat confident', 
+            'Not at all confident',
         )
+    )
+
+
+def should_reverse(column, categories):
+    return (
+        column.name in REVERSED_CATEGORIES
+        or "Strongly agree" in categories
+        or "Strongly agree or agree" in categories
+        or "Very confident" in categories
     )
 
 
@@ -94,7 +103,7 @@ def to_categorical(column):
         column.astype("category")
         .cat.rename_categories(encodings[column.name])
         .cat.set_categories(
-            reversed(categories) if column.name in REVERSED_CATEGORIES else categories,
+            reversed(categories) if should_reverse(column, categories) else categories,
             ordered=is_ordered(encoding=encodings[column.name]),
         )
     )
